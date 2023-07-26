@@ -1,6 +1,6 @@
 import { NativeModules } from 'react-native';
 import { Patterns } from '../../patterns';
-import { BaseExtractor } from '../core/Base';
+import { BaseExtractor } from '../core/BaseExtractor';
 
 const Module = NativeModules.PdfExtractor;
 
@@ -10,8 +10,9 @@ describe('BaseExtractor', () => {
   describe('canIExtract', () => {
     it('Should call canIExtract correctly', async () => {
       const canIExtractSpy = jest.spyOn(Module, 'canIExtract');
+      const baseExtractor = new BaseExtractor();
 
-      await BaseExtractor.canIExtract();
+      await baseExtractor.canIExtract();
 
       expect(canIExtractSpy).toBeCalledTimes(1);
     });
@@ -20,8 +21,9 @@ describe('BaseExtractor', () => {
   describe('isEncrypted', () => {
     it('Should call isEncrypted correctly', async () => {
       const isEncryptedSpy = jest.spyOn(Module, 'isEncrypted');
+      const baseExtractor = new BaseExtractor();
 
-      await BaseExtractor.isEncrypted();
+      await baseExtractor.isEncrypted();
 
       expect(isEncryptedSpy).toBeCalledTimes(1);
     });
@@ -30,8 +32,9 @@ describe('BaseExtractor', () => {
   describe('getUri', () => {
     it('Should call getUri correctly', async () => {
       const getUriSpy = jest.spyOn(Module, 'getUri');
+      const baseExtractor = new BaseExtractor();
 
-      await BaseExtractor.getUri();
+      await baseExtractor.getUri();
 
       expect(getUriSpy).toBeCalledTimes(1);
     });
@@ -40,8 +43,9 @@ describe('BaseExtractor', () => {
   describe('setUri', () => {
     it('Should call setUri correctly', async () => {
       const setUriSpy = jest.spyOn(Module, 'setUri');
+      const baseExtractor = new BaseExtractor();
 
-      await BaseExtractor.setUri('any-uri');
+      await baseExtractor.setUri('any-uri');
 
       expect(setUriSpy).toBeCalledTimes(1);
     });
@@ -55,8 +59,9 @@ describe('BaseExtractor', () => {
       'Should call getNumberOfPages correctly %s',
       async (_: string, password) => {
         const getNumberOfPagesSpy = jest.spyOn(Module, 'getNumberOfPages');
+        const baseExtractor = new BaseExtractor();
 
-        await BaseExtractor.getNumberOfPages(password);
+        await baseExtractor.getNumberOfPages(password);
 
         expect(getNumberOfPagesSpy).toBeCalledTimes(1);
       }
@@ -69,8 +74,9 @@ describe('BaseExtractor', () => {
       ['without password', undefined],
     ])('Should call getText correctly %s', async (_: string, password) => {
       const getTextSpy = jest.spyOn(Module, 'getText');
+      const baseExtractor = new BaseExtractor();
 
-      await BaseExtractor.getText(password);
+      await baseExtractor.getText(password);
 
       expect(getTextSpy).toBeCalledTimes(1);
     });
@@ -85,11 +91,12 @@ describe('BaseExtractor', () => {
       async (
         _: string,
         password: string | undefined,
-        patterns: RegExp | RegExp[]
+        patterns: string | string[]
       ) => {
         const getTextSpy = jest.spyOn(Module, 'getText');
+        const baseExtractor = new BaseExtractor();
 
-        await BaseExtractor.getTextWithPattern(patterns, password);
+        await baseExtractor.getTextWithPattern(patterns, password);
 
         expect(getTextSpy).toBeCalledTimes(1);
       }

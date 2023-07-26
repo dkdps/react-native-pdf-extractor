@@ -1,15 +1,16 @@
 import { AbstractChain } from './AbstractHandler';
+import type { Action } from '../../types';
 
 export class ChainLink extends AbstractChain {
-  private readonly action: any;
+  private readonly action: Action;
 
-  constructor(action: any) {
+  constructor(action: Action) {
     super();
     this.action = action;
   }
 
-  async handle<T>(data: T): Promise<T> {
-    const result = await this.action(data);
-    return await super.handle(result);
+  async handle<T, U>(data: T, ctx: U): Promise<T> {
+    const result = await this.action(data, ctx);
+    return await super.handle(result, ctx);
   }
 }

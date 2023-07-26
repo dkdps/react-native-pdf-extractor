@@ -15,32 +15,35 @@ describe('ChainLink', () => {
   it('Should call handle method', async () => {
     const chainLinkOne = new ChainLink(jest.fn());
     const chainLinkTwo = new ChainLink(jest.fn());
+    const ctx = jest.fn();
     const handleSpy = jest.spyOn(chainLinkOne, 'handle');
 
     chainLinkOne.setNext(chainLinkTwo);
-    await chainLinkOne.handle(null);
+    await chainLinkOne.handle(null, ctx);
 
     expect(handleSpy).toBeCalledTimes(1);
   });
 
   it('Should call action method', async () => {
     const action = jest.fn();
+    const ctx = jest.fn();
     const chainLink = new ChainLink(action);
 
-    await chainLink.handle('any-string');
+    await chainLink.handle('any-string', ctx);
 
     expect(action).toBeCalledTimes(1);
-    expect(action).toBeCalledWith('any-string');
+    expect(action).toBeCalledWith('any-string', ctx);
   });
 
   it('Should throws error', async () => {
+    const ctx = jest.fn();
     const action = jest.fn(() => {
       throw new Error('Some error');
     });
 
     try {
       const chainLink = new ChainLink(action);
-      await chainLink.handle('any-string');
+      await chainLink.handle('any-string', ctx);
     } catch (error: any) {
       expect(error).toHaveProperty('message');
       expect(error.message).toBe('Some error');
