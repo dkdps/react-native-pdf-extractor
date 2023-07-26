@@ -1,5 +1,5 @@
 {
-  "name": "react-native-pdf-extractor",
+  "name": "@dkdps/react-native-pdf-extractor",
   "version": "0.2.4",
   "description": "This library allows you to extract pdfs file data using matches specifics patterns.",
   "main": "lib/commonjs/index.js",
@@ -22,7 +22,7 @@
     "pdf",
     "extract"
   ],
-  "repository": "https://github.com/1fabiopereira/react-native-pdf-extractor",
+  "repository": "https://github.com/dkdps/react-native-pdf-extractor",
   "author": "Fábio Pereira <fabio.pereira.gti@gmail.com> (https://github.com/1fabiopereira)",
   "license": "MIT",
   "bugs": {
