@@ -1,157 +1,100 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
-import Modal from 'react-native-modal';
-
+import { BaseExtractor } from './BaseExtractor';
 import { Chain, ChainLink } from '../../chains';
-import Styles from './Styles';
+import type {
+  Action,
+  DataExtractor,
+  Patterns,
+  TransientObject,
+} from '../../types';
 
-import type { Patterns, Transient } from '../../types';
-import { CommonExtractor } from './Common';
+class InternalExtractor extends BaseExtractor implements DataExtractor {
+  private async prepareURI(
+    data: TransientObject,
+    ctx: InternalExtractor
+  ): Promise<TransientObject> {
+    if (data.uri) {
+      const path = await ctx.setUri(data.uri);
+      return await Promise.resolve({ ...data, uri: path });
+    }
 
-type ExtractorProps = {
-  cancel?: string;
-  fromIntent?: boolean;
-  onResult: (data: Transient | null) => void;
-  submit?: string;
-  patterns?: Patterns;
-  placeholder?: string;
-  title?: string;
-  uri?: string;
-  max?: number;
-};
-
-export const Extractor: React.FC<ExtractorProps> = memo(
-  ({
-    cancel = 'Cancel',
-    fromIntent,
-    onResult,
-    submit = 'Open',
-    patterns,
-    placeholder = 'Password',
-    title = 'This file is protected',
-    uri,
-    max = 10,
-  }) => {
-    const [locker, setLocker] = useState<string | undefined>();
-    const [value, setValue] = useState<string | undefined>();
-    const [password, setPassword] = useState<string | undefined>();
-    const [visibility, setVisibility] = useState(false);
-
-    /**
-     * Close modal
-     */
-    const close = () => {
-      setVisibility(false);
-      onResult(null);
-    };
-
-    /**
-     * Triggers callbacks when password changes
-     */
-    const changePassword = useCallback(() => {
-      setVisibility(false);
-
-      if (value?.length) {
-        setPassword(value);
-      } else {
-        onResult(null);
-      }
-    }, [value, onResult]);
-
-    /**
-     * Verifies if needs user interaction to provide password
-     * and shows component if needed
-     */
-    const verify = useCallback(async () => {
-      const data: Transient = await new Chain([
-        new ChainLink(CommonExtractor.file),
-        new ChainLink(CommonExtractor.check),
-        new ChainLink(CommonExtractor.encrypted),
-      ]).exec({ uri, patterns });
-
-      if (data.isEncrypted && !password) {
-        setVisibility(true);
-      }
-
-      return data;
-    }, [uri, patterns, password]);
-
-    /**
-     * Perform data extraction
-     */
-
-    const extract = useCallback(
-      async (data: Transient) => {
-        const start = new Date().getTime();
-
-        const result = await new Chain([
-          new ChainLink(CommonExtractor.pages),
-          new ChainLink(CommonExtractor.matches),
-        ]).exec({ ...data, password, max: max });
-
-        const finish = new Date().getTime();
-
-        return { ...result, duration: `${finish - start}ms` };
-      },
-      [max, password]
-    );
-
-    /**
-     * Call data extraction functions
-     */
-    const exec = useCallback(async (): Promise<void> => {
-      try {
-        const data = await verify();
-
-        if ((data?.isEncrypted && password) || !data?.isEncrypted) {
-          const result = await extract(data);
-          onResult(result);
-        }
-      } catch (error) {
-        console.warn(error);
-        onResult(null);
-      }
-    }, [extract, onResult, password, verify]);
-
-    /**
-     * Verifies if can re-render component or runs data extraction
-     */
-    useEffect(() => {
-      const withoutPatterns = uri ?? fromIntent;
-      const withPatterns = (uri && patterns) || (fromIntent && patterns);
-      const lock = `${uri}|${patterns}|${fromIntent}|${password}`;
-
-      if (lock !== locker && Boolean(withPatterns || withoutPatterns)) {
-        setLocker(lock);
-        exec();
-      }
-    }, [exec, uri, patterns, fromIntent, locker, password]);
-
-    return (
-      <Modal
-        hideModalContentWhileAnimating={false}
-        isVisible={visibility}
-        onBackButtonPress={close}
-        useNativeDriver
-      >
-        <View style={Styles.Container}>
-          <Text style={Styles.Title}>{title}</Text>
-          <TextInput
-            onChangeText={setValue}
-            placeholder={placeholder}
-            secureTextEntry
-            underlineColorAndroid="gray"
-          />
-          <View style={Styles.Row}>
-            <TouchableOpacity style={Styles.Button} onPress={close}>
-              <Text style={Styles.Text}>{cancel}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={Styles.Button} onPress={changePassword}>
-              <Text style={Styles.Text}>{submit}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
+    const path = await ctx.getUri();
+    return await Promise.resolve({ ...data, uri: path });
   }
-);
+
+  private async checkEnv(
+    data: TransientObject,
+    ctx: InternalExtractor
+  ): Promise<TransientObject> {
+    const canIExtract = await ctx.canIExtract();
+
+    if (canIExtract) {
+      return Promise.resolve(data);
+    }
+
+    throw new Error('You cannot continue with extraction.');
+  }
+
+  private async getPages(
+    data: TransientObject,
+    ctx: InternalExtractor
+  ): Promise<TransientObject> {
+    const pages = await ctx.getNumberOfPages();
+    return Promise.resolve({ ...data, pages });
+  }
+
+  private async applyPassword(
+    data: TransientObject,
+    ctx: InternalExtractor
+  ): Promise<TransientObject> {
+    const isEncrypted = await ctx.isEncrypted();
+
+    if (!isEncrypted) {
+      return Promise.resolve({ ...data, isEncrypted });
+    }
+
+    throw new Error('You need provide password to continue with extraction.');
+  }
+
+  private async getMatches(
+    data: TransientObject,
+    ctx: InternalExtractor
+  ): Promise<TransientObject> {
+    const text = !data.patterns
+      ? await ctx.getText()
+      : await ctx.getTextWithPattern(data.patterns);
+
+    return Promise.resolve({ ...data, text });
+  }
+
+  async extract(uri?: string, patterns?: Patterns): Promise<TransientObject> {
+    const start = new Date().getTime();
+
+    const data = await new Chain([
+      new ChainLink(this.prepareURI as Action),
+      new ChainLink(this.checkEnv as Action),
+      new ChainLink(this.getPages as Action),
+      new ChainLink(this.applyPassword as Action),
+      new ChainLink(this.getMatches as Action),
+    ]).exec({ uri, patterns }, this);
+
+    const finish = new Date().getTime();
+
+    return { ...data, duration: `${finish - start}ms` };
+  }
+
+  async extractFromIntent(patterns?: Patterns): Promise<TransientObject> {
+    const start = new Date().getTime();
+    const canIExtract = await this.canIExtract();
+    let data = {};
+
+    if (canIExtract) {
+      data = await this.extract(undefined, patterns);
+    }
+
+    const finish = new Date().getTime();
+
+    return { ...data, duration: `${finish - start}ms` };
+  }
+}
+
+export const Extractor = new InternalExtractor() as DataExtractor;
