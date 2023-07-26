@@ -34,6 +34,11 @@ export class BaseExtractor {
     return [...new Set(data?.split('\n') || [])] as string[];
   }
 
+  static async getAllText(password?: string): Promise<string[]> {
+    const data = await PdfExtractor.getText(password);
+    return [...(data?.split('\n') || [])] as string[];
+  }  
+
   static async getTextWithPattern(
     pattern: Patterns,
     password?: string
